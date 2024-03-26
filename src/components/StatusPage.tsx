@@ -1,15 +1,28 @@
-import { Button, Tooltip} from "@mui/material"
+import { Button, Tooltip } from "@mui/material"
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import { styled } from "@mui/material/styles";
-import {  useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchStatus, saveStatus } from "../services/status.service";
+
 
 export default function StatusPage() {
     const [add, setAdd] = useState(false);
     const [data, setData] = useState<any>([]);
+
+    useEffect(() => {
+        (async () => {
+            const data = await fetchStatus();
+            console.log(data);
+            setData(data.data);
+        })()
+    }, [])
+
+
+
 
     const BootstrapDialog = styled(Dialog)(({ theme }) => ({
         "& .MuiDialogContent-root": {
@@ -32,6 +45,16 @@ export default function StatusPage() {
             setAdd(false);
             setnewTitle("");
             setnewDesc("");
+        };
+        const handleSave = async () => {
+            try {
+                const x = await saveStatus(newTitle, newDesc, check);
+                console.log(x);
+                setAdd(false);
+                window.location.reload();
+            } catch (error) {
+                console.log(error);
+            }
         };
         return (
             <BootstrapDialog open={add} >
@@ -75,7 +98,7 @@ export default function StatusPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCancel} >Cancel</Button>
-                    <Button >Save</Button>
+                    <Button onClick={handleSave} >Save</Button>
                 </DialogActions>
             </BootstrapDialog>
         )
@@ -122,23 +145,32 @@ export default function StatusPage() {
                     month: 'short',
                     year: 'numeric'
                 });
-                datesArray[30-differenceDays-1] = { date: formattedDate, ...data[index] };
+                datesArray[30 - differenceDays - 1] = { date: formattedDate, ...data[index] };
             } else {
                 console.log(`${date} does not fall within the last 30 days`);
             }
         }
-        console.log(datesArray);
         return (
             <div className="flex flex-row w-full gap-2 h-[50px]">
                 {datesArray.map((date: any, index: any) => {
+                    var color= "#17DD8C";
+                    if(date.issueType=="Major Outage"){
+                        color="#dc2626"
+                    }
+                    if(date.issueType=="Operational Degradation"){
+                        color="#f59e0b"
+                    }
+                    if(date.issueType=="Partial Outage"){
+                        color="#facc15"
+                    }
                     return (
                         <Tooltip title={<div>
                             <h1 style={{ fontSize: "15px" }} className="">{date.date}</h1>
                             <hr />
-                            <h1 style={{ fontSize: "12px" }} className="">{date.issueTitle?date.issueTitle:"No downtime recorded on this day."}</h1>
+                            <h1 style={{ fontSize: "12px" }} className="">{date.issueType ? date.issueType : "No downtime recorded on this day."}</h1>
                         </div>
                         } placement="bottom" arrow key={index}>
-                            <div className={`flex-1 h-full ${date.issueTitle?"bg-red-600":"bg-[#17DD8C]"}`}></div>
+                            <div className={`flex-1 h-full`} style={{background:color}}></div>
                         </Tooltip>
                     );
                 })}
@@ -151,7 +183,7 @@ export default function StatusPage() {
     return (
         <div className="flex flex-col w-full min-h-[100vh] ">
             <div className="lg:mt-2 mt-12 lg:px-6 pt-0  flex flex-col items-center flex-wrap justify-between ">
-                    <div className="px-5 my-4 max-w-[70%] w-full flex flex-col items-center justify-center">
+                <div className="px-5 my-4 max-w-[70%] w-full flex flex-col items-center justify-center">
                     <h1
                         className="text-5xl my-4 font-extrabold text-center"
                         style={{ color: "#FF66AF" }}
@@ -163,20 +195,20 @@ export default function StatusPage() {
                         Welcome to status page ! A status page is a valuable tool for both website owners and users, providing transparent communication about the operational status of a website or service and helping to manage user expectations during incidents and maintenance activities.
                     </h3>
                     <div className="w-full">
-                    <Button className="p-2 hover:bg-red-600" startIcon={<ReportProblemIcon />} style={{ color: "red", float: "right", border: "1px solid red" }} onClick={() => setAdd(true)}>Report</Button>
-                    
-                    
+                        <Button className="p-2 hover:bg-red-600" startIcon={<ReportProblemIcon />} style={{ color: "red", float: "right", border: "1px solid red" }} onClick={() => setAdd(true)}>Report</Button>
+
+
                     </div>
                     <ReportMode />
                     <div className="flex p-4 flex-col w-full m-auto">
                         <span style={{ fontSize: "12px", textAlign: "end", color: "wheat" }}>Uptime over the past 30 days. View historical uptime.</span>
                         <div className="flex flex-col p-2 w-full border border-white p-3 mt-1 rounded ">
-                            <h2 className="m-1 text-xl" style={{textAlign:"left"}}>Web App</h2>
+                            <h2 className="m-1 text-xl" style={{ textAlign: "left" }}>Web App</h2>
                             <Bar />
                         </div>
                     </div>
                     <div className="flex p-4 flex-col w-[70%] my-4 ">
-                        <div className="text-2xl" style={{textAlign:"left"}}>
+                        <div className="text-2xl" style={{ textAlign: "left" }}>
                             Past Incidents
                         </div>
                         {data.map((item: any, index: any) => {
